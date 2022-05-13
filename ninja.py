@@ -43,21 +43,36 @@ def play_sound(filename):
 class Label:
     # This instantiates each label, with it's pixel coordinates, it's contents, which is always turned into a string, to make things
     # easier, as well as a colour, which is given a default value of black.
-    def __init__(self, contents, location=(0, 0), colour=(0, 0, 0), size=round(SCREEN_WIDTH/31.25)):
-        # This print statement is simply here for debugging, and has been commented out.
-        #print("Label Init")
-        self.location = location
-        self.contents = str(contents)
+    def __init__(self, contents:str, location:tuple=None, colour:tuple=None, size=round(SCREEN_WIDTH/31.25), shadow:bool=False, shadow_colour:tuple=None, shadow_offset:tuple=None):
+        if location is None:
+            location = (0, 0)
+        if colour is None:
+            colour = (255, 255, 255)
+        if shadow_colour is None:
+            shadow_colour = (0, 0, 0)
+        if shadow_offset is None:
+            shadow_offset = (1, 1)
         # This is one of the built in fonts for pygame. As this does function adequatly I will not be changing it.
         self.font = pygame.font.Font("freesansbold.ttf", size)
+        # This print statement is simply here for debugging, and has been commented out.
+        #print("Label Init")
+        self.contents = str(contents)
+        self.location = location
         self.colour = colour
-        # This stores a rendering of the label, to be used when bliting.
-        self.pre_render = self.font.render(str(self.contents), True, self.colour)
+        self.shadow = shadow
+        self.shadow_location = (location[0] + round((size/20)*shadow_offset[0]), location[1] + round((size/20)*shadow_offset[1]))
+        self.shadow_colour = shadow_colour
+        # This stores a rendering of the label, to be used when blitting.
+        self.pre_render = self.font.render(self.contents, True, self.colour)
+        if self.shadow:
+            self.shadow_pre_render = self.font.render(self.contents, True, self.shadow_colour)
 
     # This is the simple one time show. If the label will never need to change, this puts it on the screen.
     def show_label(self, screen):
         # print("Rendered")
         self.screen = screen
+        if self.shadow:
+            self.screen.blit(self.shadow_pre_render, self.shadow_location)
         self.screen.blit(self.pre_render, self.location)
 
     # This is the quick way of changing the contents
@@ -71,7 +86,10 @@ class Label:
     # This is the alternative to show_label. It re-renders every time, meaning that if the contents has changed, it will
     # change the label.
     def update(self):
-        self.pre_render = self.font.render(str(self.contents), True, self.colour)
+        if self.shadow:
+            self.shadow_pre_render = self.shadow_pre_render = self.font.render(self.contents, True, self.shadow_colour)
+            self.screen.blit(self.shadow_pre_render, self.shadow_location)
+        self.pre_render = self.font.render(self.contents, True, self.colour)
         self.screen.blit(self.pre_render, self.location)
 
 
@@ -388,9 +406,7 @@ class Game():
 
     # Screen displayed after the player dies
     def game_over_screen(self):
-        label = Label("Game Over", (240, 360), (0,0,0) , size=200)
-        label.show_label(self.DISPLAYSURF)
-        label = Label("Game Over", (230, 350), (255, 255, 255) , size=200)
+        label = Label("Game Over", (240, 360), (0,0,0) , size=200, shadow=True, shadow_colour=(255, 255, 255))
         label.show_label(self.DISPLAYSURF)
         
 
@@ -469,69 +485,40 @@ class Game():
         # put text on it using cutsom label class
         # help menu title label
         
-        title_label = Label("Help Menu", (360, 60), (0, 0, 0), size=150)
-        title_label.show_label(self.DISPLAYSURF)
-        title_label = Label("Help Menu", (350, 50), (255, 255, 255), size=150)
+        title_label = Label("Help Menu", (360, 60), (0, 0, 0), size=150, shadow=True, shadow_colour=(255, 255, 255))
         title_label.show_label(self.DISPLAYSURF)
 
-        title_label = Label("1 - One Player", (105, 255), (0, 0, 0), size=50)
+        title_label = Label("1 - One Player", (105, 255), (0, 0, 0), size=50, shadow=True, shadow_colour=(255, 255, 255))
         title_label.show_label(self.DISPLAYSURF)
-        title_label = Label("B - Back", (585, 255), (0, 0, 0), size=50)
+        title_label = Label("B - Back", (585, 255), (0, 0, 0), size=50, shadow=True, shadow_colour=(255, 255, 255))
         title_label.show_label(self.DISPLAYSURF)
-        title_label = Label("L - Leaderboard", (1075, 255), (0, 0, 0), size=50)
+        title_label = Label("L - Leaderboard", (1075, 255), (0, 0, 0), size=50, shadow=True, shadow_colour=(255, 255, 255))
         title_label.show_label(self.DISPLAYSURF)
-        title_label = Label("2 - Two Player", (105, 355), (0, 0, 0), size=50)
+        title_label = Label("2 - Two Player", (105, 355), (0, 0, 0), size=50, shadow=True, shadow_colour=(255, 255, 255))
         title_label.show_label(self.DISPLAYSURF)
-        title_label = Label("P - Pause Menu", (1070, 355), (0, 0, 0), size=50)
+        title_label = Label("P - Pause Menu", (1070, 355), (0, 0, 0), size=50, shadow=True, shadow_colour=(255, 255, 255))
         title_label.show_label(self.DISPLAYSURF)
-        title_label = Label("H - Help Menu", (585, 355), (0, 0, 0), size=50)
+        title_label = Label("H - Help Menu", (585, 355), (0, 0, 0), size=50, shadow=True, shadow_colour=(255, 255, 255))
         title_label.show_label(self.DISPLAYSURF)
-        title_label = Label("Player One", (155, 455), (0, 0, 0), size=100)
+
+        title_label = Label("Player One", (155, 455), (0, 0, 0), size=100, shadow=True, shadow_colour=(255, 255, 255))
         title_label.show_label(self.DISPLAYSURF)
-        title_label = Label("^ - Jump", (155, 555), (0, 0, 0), size=50)
+        title_label = Label("^ - Jump", (155, 555), (0, 0, 0), size=50, shadow=True, shadow_colour=(255, 255, 255))
         title_label.show_label(self.DISPLAYSURF)
-        title_label = Label("> - Move Right", (155, 655), (0, 0, 0), size=50)
+        title_label = Label("> - Move Right", (155, 655), (0, 0, 0), size=50, shadow=True, shadow_colour=(255, 255, 255))
         title_label.show_label(self.DISPLAYSURF)
-        title_label = Label("< - Move Left", (155, 755), (0, 0, 0), size=50)
+        title_label = Label("< - Move Left", (155, 755), (0, 0, 0), size=50, shadow=True, shadow_colour=(255, 255, 255))
         title_label.show_label(self.DISPLAYSURF)
-        title_label = Label("Player Two", (905, 455), (0, 0, 0), size=100)
+
+        title_label = Label("Player Two", (905, 455), (0, 0, 0), size=100, shadow=True, shadow_colour=(255, 255, 255))
         title_label.show_label(self.DISPLAYSURF)
-        title_label = Label("W - Jump", (905, 555), (0, 0, 0), size=50)
+        title_label = Label("W - Jump", (905, 555), (0, 0, 0), size=50, shadow=True, shadow_colour=(255, 255, 255))
         title_label.show_label(self.DISPLAYSURF)
-        title_label = Label("D - Move Right", (905, 655), (0, 0, 0), size=50)
+        title_label = Label("D - Move Right", (905, 655), (0, 0, 0), size=50, shadow=True, shadow_colour=(255, 255, 255))
         title_label.show_label(self.DISPLAYSURF)
-        title_label = Label("A - Move Left", (905, 755), (0, 0, 0), size=50)
-        title_label.show_label(self.DISPLAYSURF)
-        
-        title_label = Label("1 - One Player", (100, 250), (255, 255, 255), size=50)
-        title_label.show_label(self.DISPLAYSURF)
-        title_label = Label("B - Back", (580, 250), (255, 255, 255), size=50)
-        title_label.show_label(self.DISPLAYSURF)
-        title_label = Label("L - Leaderboard", (1070, 250), (255, 255, 255), size=50)
-        title_label.show_label(self.DISPLAYSURF)
-        title_label = Label("2 - Two Player", (100, 350), (255, 255, 255), size=50)
-        title_label.show_label(self.DISPLAYSURF)
-        title_label = Label("P - Pause Menu", (1065, 350), (255, 255, 255), size=50)
-        title_label.show_label(self.DISPLAYSURF)
-        title_label = Label("H - Help Menu", (580, 350), (255, 255, 255), size=50)
+        title_label = Label("A - Move Left", (905, 755), (0, 0, 0), size=50, shadow=True, shadow_colour=(255, 255, 255))
         title_label.show_label(self.DISPLAYSURF)
         title_label = Label("_______________________________________________________________________________", (0, 370), (255, 255, 255), size=50)
-        title_label.show_label(self.DISPLAYSURF)
-        title_label = Label("Player One", (150, 450), (255, 255, 255), size=100)
-        title_label.show_label(self.DISPLAYSURF)
-        title_label = Label("^ - Jump", (150, 550), (255, 255, 255), size=50)
-        title_label.show_label(self.DISPLAYSURF)
-        title_label = Label("> - Move Right", (150, 650), (255, 255, 255), size=50)
-        title_label.show_label(self.DISPLAYSURF)
-        title_label = Label("< - Move Left", (150, 750), (255, 255, 255), size=50)
-        title_label.show_label(self.DISPLAYSURF)
-        title_label = Label("Player Two", (900, 450), (255, 255, 255), size=100)
-        title_label.show_label(self.DISPLAYSURF)
-        title_label = Label("W - Jump", (900, 550), (255, 255, 255), size=50)
-        title_label.show_label(self.DISPLAYSURF)
-        title_label = Label("D - Move Right", (900, 650), (255, 255,255), size=50)
-        title_label.show_label(self.DISPLAYSURF)
-        title_label = Label("A - Move Left", (900, 750), (255, 255,255), size=50)
         title_label.show_label(self.DISPLAYSURF)
 
         
@@ -727,7 +714,7 @@ class Game():
         # get high score(s) from json file (if any)
         self.DISPLAYSURF.blit(pygame.image.load(os.path.join('images', 'brick-background.jpg')), (0,0))
 
-        # load some data about top 3 high scores    
+        # load some data about top 3 high scores
         with open("highscores.json", "r") as f:
             highscores = sorted(load(f).get("scores", []), key=lambda x: x, reverse=True)
 
@@ -736,25 +723,19 @@ class Game():
         labels = ['First', 'Second', 'Third']
         if len(highscores) < 3:
             for i in range(len(highscores)):
-                highscore_label = Label(labels[i] + ":     " + str(highscores[i]), (550, 350 + (162 * i)), (0, 0, 0), size=65)
-                highscore_label.show_label(self.DISPLAYSURF)
-                highscore_label = Label(labels[i] + ":     " + str(highscores[i]), (555, 345 + (162 * i)), (255, 255, 255), size=65)
+                highscore_label = Label(labels[i] + ":     " + str(highscores[i]), (550, 350 + (162 * i)), (0, 0, 0), size=65, shadow=True, shadow_colour=(255, 255, 255))
                 highscore_label.show_label(self.DISPLAYSURF)
                 
                 
         else:
             for i in range(0, 3):
-                highscore_label = Label(labels[i] + ":     " + str(highscores[i]), (550, 350 + (162 * i)), (0, 0, 0), size=65)
-                highscore_label.show_label(self.DISPLAYSURF)
-                highscore_label = Label(labels[i] + ":     " + str(highscores[i]), (555, 345 + (162 * i)), (255, 255, 255), size=65)
+                highscore_label = Label(labels[i] + ":     " + str(highscores[i]), (550, 350 + (162 * i)), (0, 0, 0), size=65, shadow=True, shadow_colour=(255, 255, 255))
                 highscore_label.show_label(self.DISPLAYSURF)
                 
 
 
         # create title label
-        title_label = Label("High Scores", (210, 60), (0, 0, 0), size=200)
-        title_label.show_label(self.DISPLAYSURF)
-        title_label = Label("High Scores", (200, 50), (255, 255, 255), size=200)
+        title_label = Label("High Scores", (210, 60), (0, 0, 0), size=200, shadow=True, shadow_colour=(255, 255, 255))
         title_label.show_label(self.DISPLAYSURF)
 
         pygame.display.update()
