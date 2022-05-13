@@ -23,13 +23,12 @@ JUMP_SPEED = SCREEN_WIDTH/110
 
 BACKGROUND = (255, 255, 255)
 
-LEVELFILE = "levels_new.json"
-
+LEVELFILE = "levels.json"
 
 
 ''' Json data loaded '''
 def loadLevels(filename=LEVELFILE):
-    with open(filename) as f:
+    with open(os.path.join("levels", filename)) as f:
         data = load(f)
     return data
 
@@ -379,7 +378,7 @@ class Game():
 
         self.level_data = loadLevels()
 
-        self.score = 0
+        self.score = 59
 
         self.FPS = 60
         self.FramePerSec = pygame.time.Clock()
@@ -395,7 +394,10 @@ class Game():
 
     @property
     def level(self):
-        return self.level_data[self.level_index]
+        try:
+            return self.level_data[self.level_index]
+        except IndexError:
+            return self.level_data[2]
 
     @property
     def level_index(self):
@@ -583,8 +585,6 @@ class Game():
 
         # level selection
         level = 0
-        
-        self.score = 0
 
         # initialise Player(s)
         self.players = [Player((SCREEN_WIDTH/2, SCREEN_HEIGHT-50))]
@@ -599,10 +599,10 @@ class Game():
                 if event.type == QUIT:
                     pygame.quit()
                     sys.exit()
-            for player in self.players:
-                if self.level_index != level:
-                    self.players, self.platforms, self.diamonds, self.spears, self.spikes, self.disks = self.level_setup(multiplayer)
-                    level = self.level_index
+            if self.level_index != level:
+                self.players, self.platforms, self.diamonds, self.spears, self.spikes, self.disks = self.level_setup(multiplayer)
+                
+                level = self.level_index
                         
             self.render()
 
@@ -658,8 +658,8 @@ class Game():
 
         # game over
         self.render()
-        for player in self.players:
-            self.add_high_score(self.score)
+        self.add_high_score(self.score)
+        self.score = 0
         self.game_over_screen()
 
     def render(self):
