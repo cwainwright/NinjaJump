@@ -378,7 +378,7 @@ class Game():
 
         self.level_data = loadLevels()
 
-        self.score = 59
+        self.score = 0
 
         self.FPS = 60
         self.FramePerSec = pygame.time.Clock()
@@ -443,9 +443,12 @@ class Game():
         #displaying high score
         self.DISPLAYSURF.blit(pygame.image.load(os.path.join('images', 'high-score.png')), (370 ,400))
 
-        # load some data about top 3 high scores    
-        with open("highscores.json", "r") as f:
-            highscores = sorted(load(f).get("scores", []), key=lambda x: x, reverse=True)
+        # load some data about top 3 high scores   
+        try: 
+            with open("highscores.json", "r") as f:
+                highscores = sorted(load(f).get("scores", []), key=lambda x: x, reverse=True)
+        except FileNotFoundError:
+            highscores = [0]
 
         # put text on it using cutsom label class
         high_score_label = Label(highscores[0], (750, 550), (255, 0, 0))
