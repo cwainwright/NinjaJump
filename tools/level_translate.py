@@ -2,6 +2,7 @@ from json import load, dump
 from copy import deepcopy
 
 def main():
+    """Used to translate old-style levels to new-style levels."""
     new_levels = []
     level_template = {
         "platforms": [], "spikes": [], "diamonds": [],
