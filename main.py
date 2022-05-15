@@ -405,6 +405,7 @@ class Game():
 
     def increment_score(self):
         self.score += 1
+            
 
     # Screen displayed after the player dies
     def game_over_screen(self):
