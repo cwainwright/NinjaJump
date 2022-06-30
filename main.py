@@ -6,7 +6,7 @@ from json import dump, load
 from math import floor
 from threading import local
 
-from assets_fetch import get_image, get_level
+from assets_fetch import get_highscores, get_image, get_level
 from audio import play_music, play_sound
 from constants import *
 from objects import Diamond, Disk, Label, Platform, Spear, Spike
@@ -347,16 +347,16 @@ class Game():
     def add_high_score(self, player_score):
         # make highscores.json if none exists
         try:
-            with open("highscores.json", "r") as f:
+            with open(get_highscores(), "r") as f:
                 highscore_data = load(f)
             highscore_data["scores"].append(player_score)
-            with open("highscores.json", "w") as f:
+            with open(get_highscores(), "w") as f:
                 dump(highscore_data, f)
         except:
             highscore_data = {
                 "scores": [player_score]
             }
-            with open("highscores.json", "w") as f:
+            with open(get_highscores(), "w") as f:
                 dump(highscore_data, f)
 
     # Leader board screen displayed with the top players

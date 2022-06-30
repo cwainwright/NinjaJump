@@ -11,3 +11,6 @@ def get_level(level):
 
 def get_sound(sound):
     return get_asset("sounds", sound)
+
+def get_highscores():
+    return get_asset("highscores", "highscores.json")
