@@ -1,5 +1,6 @@
 from ast import dump
 from copy import deepcopy
+from this import s
 import pygame
 import random
 import os
@@ -33,10 +34,18 @@ def loadLevels(filename=LEVELFILE):
     return data
 
 
+def play_music(filename):
+    if pygame.mixer.get_init() is None:
+        pygame.mixer.init()
+    pygame.mixer.music.load(os.path.join('sounds', filename))
+    pygame.mixer.music.play(-1)
+
 def play_sound(filename):
-    pygame.mixer.init()
-    pygame.mixer.music.load(os.path.join("sounds", filename))
-    pygame.mixer.music.play(0)
+    if pygame.mixer.get_init() is None:
+        pygame.mixer.init()
+    sound = pygame.mixer.Sound(os.path.join("sounds", filename))
+    if not pygame.mixer.find_channel(force=True).get_busy():
+        pygame.mixer.find_channel(force=True).play(sound, loops=0)
 
 
 class Label:
@@ -94,14 +103,24 @@ class Label:
 
 ''' Players '''
 class Player(pygame.sprite.Sprite):
-    def __init__(self, pos: tuple):
+    def __init__(self, pos: tuple, player=1):
         super().__init__()
         # loading image
-        self.surf = pygame.image.load(os.path.join("images", "jumper-1.png"))
+        self.set_state()
         # defines the area image is in
         self.rect = self.surf.get_rect()
         # Sets position
         self.rect.bottomleft = pos
+
+        # Input Keys
+        input_keys = [
+            {"up": K_UP, "left": K_LEFT, "right": K_RIGHT},
+            {"up": K_w, "left": K_a, "right": K_d}
+        ]
+        # Setup input keys:
+        self.up_key = input_keys[player-1]["up"]
+        self.left_key = input_keys[player-1]["left"]
+        self.right_key = input_keys[player-1]["right"]
 
         # Sets the motion vectors
         self.i = 0
@@ -112,25 +131,25 @@ class Player(pygame.sprite.Sprite):
         self.jumping = False
         self.supported = False
 
-        self.name = "1"
+        self.name = str(player)
         self.label = Label(self.name, (self.rect.x, self.rect.y - 80), (255, 255, 255))
 
     # this allows the player to move in both horizontally and vertically
     def move(self):
         pressed_keys = pygame.key.get_pressed()
         if self.alive:
-            self.surf = pygame.image.load(os.path.join("images", "jumper-1.png"))
-            if pressed_keys[K_UP]:
-                self.surf = pygame.image.load(os.path.join("images", "jumper-up.png"))
-                self.jumping = True
-                play_sound("jump.wav")
+            self.set_state()
+            if pressed_keys[self.up_key]:
+                if self.supported:
+                    play_sound("jump.wav")
+                self.set_state("jumping")
 
-            if pressed_keys[K_LEFT]:
-                self.surf = pygame.image.load(os.path.join("images", "jumper-left.png"))
+            if pressed_keys[self.left_key]:
+                self.set_state("left")
                 self.i -= SPEED
 
-            if pressed_keys[K_RIGHT]:
-                self.surf = pygame.image.load(os.path.join("images", "jumper-right.png"))
+            if pressed_keys[self.right_key]:
+                self.set_state("right")
                 self.i += SPEED
 
         # max speed check
@@ -186,7 +205,6 @@ class Player(pygame.sprite.Sprite):
             self.jumping = True
             self.supported = True
 
-        # if jumping not supported !
         if self.jumping == False:
             self.supported = False
 
@@ -213,94 +231,25 @@ class Player(pygame.sprite.Sprite):
         if self.alive:
             self.label.show_label(surface)
 
+    def set_state(self, state = ""):
+        if state == "dead":
+            self.alive = False
+            state_surf = "jumper-dead.png"
+        elif state == "jumping":
+            self.jumping = True
+            state_surf = "jumper-up.png"
+        elif state == "left":
+            state_surf = "jumper-left.png"
+        elif state == "right":
+            state_surf = "jumper-right.png"
+        else:
+            state_surf = "jumper-1.png"
+        self.surf = pygame.image.load(os.path.join("images", state_surf))
+
     def kill(self):
         if self.alive == True:
-            self.alive = False
             play_sound('diskhit.wav')
-            self.surf = pygame.image.load(os.path.join("images", "jumper-dead.png"))
-        
-        
-class Player2(Player):
-    def __init__(self, pos: tuple):
-        super().__init__(pos)
-        self.surf = pygame.image.load(os.path.join("images", "jumper-1.png"))
-        self.name = "2"
-        self.label = Label(self.name, (self.rect.x, self.rect.y - 20), (255, 255, 255))
-
-    # allows the second player to move horizontally and vertically
-    def move(self):
-        pressed_keys = pygame.key.get_pressed()
-        if self.alive:
-            self.surf = pygame.image.load(os.path.join("images", "jumper-1.png"))
-            if pressed_keys[K_w]:
-                self.jumping = True
-                self.surf = pygame.image.load(os.path.join("images", "jumper-up.png"))
-                play_sound("jump.wav")
-
-            if pressed_keys[K_a]:
-                self.surf = pygame.image.load(os.path.join("images", "jumper-left.png"))
-                self.i -= SPEED
-
-            if pressed_keys[K_d]:
-                self.surf = pygame.image.load(os.path.join("images", "jumper-right.png"))
-                self.i += SPEED
-
-        # max speed check
-        if self.i > MAX_SPEED:
-            self.i = MAX_SPEED
-        if self.i < -MAX_SPEED:
-            self.i = -MAX_SPEED
-
-        # friction
-        if self.i < 0:
-            self.i += -self.i/5
-        if self.i > 0:
-            self.i -= self.i/5
-
-        # roudning down if close to 0
-        if self.i > -0.5 and self.i < 0.5:
-            self.i = 0
-
-        self.rect.move_ip(self.i, 0)
-
-        # jumping
-        if self.jumping:
-            self.rect.move_ip(0, self.j)
-            if self.j < JUMP_SPEED:
-                self.j += SPEED/4
-
-        # edges
-        if self.rect.left <= 0:
-            self.rect.move_ip(-self.rect.left, 0)
-            if self.i < 0:
-                self.i = 0
-
-        if self.rect.right >= SCREEN_WIDTH:
-            self.rect.move_ip((SCREEN_WIDTH - self.rect.right), 0)
-            if self.i > 0:
-                self.i = 0
-
-        # bottom
-        if self.rect.bottom >= SCREEN_HEIGHT:
-            self.rect.move_ip(0, -(self.rect.bottom - SCREEN_HEIGHT))
-            self.jumping = False
-            self.j = -JUMP_SPEED
-            self.supported = True
-
-        # top
-        if self.rect.top <= 0:
-            self.rect.move_ip(0, -self.rect.top)
-            self.j = 1
-
-        # You will never under double negation
-        if self.supported == False and self.jumping == False:
-            self.j = 0
-            self.jumping = True
-            self.supported = True
-
-        if self.jumping == False:
-            self.supported = False
-
+            self.set_state("dead")
 
 ''' Objects '''
 class Object(pygame.sprite.Sprite):
@@ -427,12 +376,7 @@ class Game():
         self.DISPLAYSURF.blit(pygame.image.load(os.path.join('images', 'loading-background.jpg')), (0,0))
 
         # q the music
-        try:
-            pygame.mixer.init()
-            pygame.mixer.music.load(os.path.join('sounds', 'game_music.wav'))
-            pygame.mixer.music.play(-1)
-        except:
-            pass                    
+        play_music('game_music.wav')                 
 
         # put text on it using cutsom label class
         label = Label("Press 'h' for help", (10, 780), (255, 0, 0) , size=25)
@@ -490,6 +434,8 @@ class Game():
 
         # put text on it using cutsom label class
         # help menu title label
+
+        # TODO: Fix this mess
         
         title_label = Label("Help Menu", (360, 60), (0, 0, 0), size=150, shadow=True, shadow_colour=(255, 255, 255))
         title_label.show_label(self.DISPLAYSURF)
@@ -579,7 +525,7 @@ class Game():
 
         players = [Player((SCREEN_WIDTH/2, SCREEN_HEIGHT-50))]
         if multiplayer:
-            players.append(Player2((SCREEN_WIDTH/2 + 100, SCREEN_HEIGHT-50)))
+            players.append(Player((SCREEN_WIDTH/2 + 100, SCREEN_HEIGHT-50), 2))
 
         # return them
         return (players, platforms, diamonds, spears, spikes, disks)
@@ -593,7 +539,7 @@ class Game():
         # initialise Player(s)
         self.players = [Player((SCREEN_WIDTH/2, SCREEN_HEIGHT-50))]
         if multiplayer:
-            self.players.append(Player2((SCREEN_WIDTH/2 + 100, SCREEN_HEIGHT-50)))
+            self.players.append(Player((SCREEN_WIDTH/2 + 100, SCREEN_HEIGHT-50), 2))
         # initialise Objects
         self.players, self.platforms, self.diamonds, self.spears, self.spikes, self.disks = self.level_setup(multiplayer)
 
