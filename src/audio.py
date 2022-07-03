@@ -1,7 +1,8 @@
-from assets_fetch import get_sound
+from os import listdir
 
 import pygame
 
+from assets_fetch import get_asset, get_sound
 
 def play_music(filename):
     if pygame.mixer.get_init() is None:
@@ -12,6 +13,10 @@ def play_music(filename):
 def play_sound(filename):
     if pygame.mixer.get_init() is None:
         pygame.mixer.init()
+    try:
+        id=listdir(get_sound()).index(filename)
+    except IndexError:
+        id=1
     sound = pygame.mixer.Sound(get_sound(filename))
-    if not pygame.mixer.find_channel(force=True).get_busy():
-        pygame.mixer.find_channel(force=True).play(sound, loops=0)
+    pygame.mixer.Channel(id).play(sound)
+

@@ -1,3 +1,5 @@
+from highscores import Highscores
+
 ''' Globals '''
 SCREEN_WIDTH = 1566
 SCREEN_HEIGHT = 830
@@ -13,3 +15,11 @@ ENEMY_SPEED = SCREEN_WIDTH/500
 BACKGROUND = (255, 255, 255)
 
 LEVELFILE = "levels.json"
+
+LEVELUPNUM = 20
+
+TITLESIZE = 150
+HEADERSIZE = 100
+BODYSIZE = 50
+
+HIGHSCORES = Highscores()
