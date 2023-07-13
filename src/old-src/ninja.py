@@ -22,7 +22,7 @@ BACKGROUND = (255, 255, 255)
 
 
 ''' Json data loaded '''
-def loadLevels(filename="levels.json"):
+def loadLevels(filename = "levels.json"):
     with open(filename) as f:
         data = json.load(f)
     return data
