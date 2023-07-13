@@ -4,7 +4,7 @@ import json
 def main():
     """Used to generate additional diamonds for new-style levels."""
     inp = ""
-    lst = []
+    lst: list[dict[str, int]] = []
     while inp == "":
         gen_x = randint(30, 1536)
         gen_y = choice([150, 235, 315, 397, 479, 561, 643, 725, 810])

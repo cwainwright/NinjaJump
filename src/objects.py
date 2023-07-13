@@ -1,29 +1,48 @@
+from __future__ import annotations
+
 from random import randint
+from typing import Protocol
 
-import pygame
+# import pygame
+from pygame import font, key, rect, sprite, surface
+from pygame.image import load
+from pygame.locals import K_LEFT, K_RIGHT, K_UP, K_a, K_d, K_w
 
 from assets_fetch import get_image
-from constants import SCREEN_WIDTH, ENEMY_SPEED, SCREEN_HEIGHT
-
-from constants import *
 from audio import play_sound
-from assets_fetch import get_image
+from constants import *
+from constants import ENEMY_SPEED, SCREEN_HEIGHT, SCREEN_WIDTH
 
-from pygame.locals import *
+font.init()
+
+''' Game Object Protocol '''
+class GameObject(Protocol):
+    def draw(self, surf: surface.Surface) -> None: ...
 
 ''' Players '''
-class Player(pygame.sprite.Sprite):
-    def __init__(self, pos: tuple, player=1):
+class Player(sprite.Sprite, GameObject):
+    """Player Character class
+
+    Inherits:
+        pygame.sprite.Sprite: used for draw calls and collision detection
+    """
+    def __init__(self, pos: tuple[int, int], player: int = 1):
+        """Initialise new instance of Player object
+
+        Args:
+            pos (tuple): initial position as tuple
+            player (int, optional): player 1 or 2 (or more). Defaults to 1.
+        """
         super().__init__()
         # loading image
         self.set_state()
         # defines the area image is in
-        self.rect = self.surf.get_rect()
+        self.rect: rect.Rect = self.surf.get_rect()
         # Sets position
         self.rect.bottomleft = pos
 
         # Input Keys
-        input_keys = [
+        input_keys: list[dict[str, int]] = [
             {"up": K_UP, "left": K_LEFT, "right": K_RIGHT},
             {"up": K_w, "left": K_a, "right": K_d}
         ]
@@ -34,21 +53,25 @@ class Player(pygame.sprite.Sprite):
         self.right_key = input_keys[player-1]["right"]
 
         # Sets the motion vectors
-        self.i = 0
-        self.j = -MAX_SPEED
+        self.i: float = 0
+        self.j: float = -MAX_SPEED
 
-        self.alive = True
+        self.state_alive: bool = True
 
-        self.jumping = False
-        self.supported = False
+        self.state_jumping: bool = False
+        self.supported: bool = False
 
-        self.name = str(player)
-        self.label = Label(self.name, (self.rect.x, self.rect.y - 80), (255, 255, 255))
+        self.name: str = str(player)
+        self.label: Label = Label(self.name, (self.rect.x, self.rect.y - 80), (255, 255, 255))
 
     # this allows the player to move in both horizontally and vertically
     def move(self):
-        pressed_keys = pygame.key.get_pressed()
-        if self.alive:
+        """Move player
+        
+        (check for keypresses -> apply acceleration to player object)
+        """
+        pressed_keys = key.get_pressed()
+        if self.state_alive:
             self.set_state()
             if pressed_keys[self.up_key]:
                 if self.supported:
@@ -82,7 +105,7 @@ class Player(pygame.sprite.Sprite):
         self.rect.move_ip(self.i, 0)
 
         # jumping
-        if self.jumping:
+        if self.state_jumping:
             self.rect.move_ip(0, self.j)
             if self.j < JUMP_SPEED:
                 self.j += SPEED/4
@@ -101,7 +124,7 @@ class Player(pygame.sprite.Sprite):
         # bottom
         if self.rect.bottom >= SCREEN_HEIGHT:
             self.rect.move_ip(0, -(self.rect.bottom - SCREEN_HEIGHT))
-            self.jumping = False
+            self.state_jumping = False
             self.j = -JUMP_SPEED
             self.supported = True
 
@@ -111,43 +134,75 @@ class Player(pygame.sprite.Sprite):
             self.j = 1
 
         # You will never under double negation
-        if self.supported == False and self.jumping == False:
+        if self.supported == False and self.state_jumping == False:
             self.j = 0
-            self.jumping = True
+            self.state_jumping = True
             self.supported = True
 
-        if self.jumping == False:
+        if self.state_jumping == False:
             self.supported = False
 
-    def wallCollision(self, platform):
+    def wallCollision(self, platform: rect.Rect):
+        """Wall Collision
+        
+        If collision is detected -> apply suitable acceleration
+
+        Args:
+            platform (pygame.rect): platform dimension vectors
+        """
         if self.rect.right > platform.left and self.rect.left < platform.right:
             if self.rect.bottom > platform.top and self.rect.top < platform.top:
                 self.rect.move_ip(0, platform.top - self.rect.bottom)
                 self.supported = True
                 if self.j > 0:
-                    self.jumping = False
+                    self.state_jumping = False
                     self.j = -JUMP_SPEED
 
-    def get_location(self):
+    def get_location(self) -> tuple[int, int]:
+        """Get Location
+        
+        Get player location as (x, y) tuple
+        """
         return(self.rect.x, self.rect.y)
 
-    def set_location(self, location):
+    def set_location(self, location: tuple[int, int]):
+        """Set Location
+        
+        Set player location to (x, y) tuple
+
+        Args:
+            location (tuple): location to set player to (x, y)
+        """
         self.rect.center = location
 
-    def draw(self, surface):
-        surface.blit(self.surf, self.rect)
+    def draw(self, surf: surface.Surface):
+        """Draw
+        
+        Draw player to display object passed in by reference
+        
+        Once player is dead, player label is not drawn
+
+        Args:
+            display (pygame.surface.Surface): display object to draw player to
+        """
+        surf.blit(self.surf, self.rect)
         # move label
         self.label.change_location((self.rect.x, self.rect.y - 80))
         # draw label
-        if self.alive:
-            self.label.show(surface)
+        if self.state_alive:
+            self.label.draw(surf)
 
-    def set_state(self, state = ""):
+    def set_state(self, state: str = ""):
+        """Set Player State
+
+        Args:
+            state (str, optional): state to set player to. Defaults to "".
+        """
         if state == "dead":
-            self.alive = False
+            self.state_alive = False
             state_surf = "jumper-dead.png"
         elif state == "jumping":
-            self.jumping = True
+            self.state_jumping = True
             state_surf = "jumper-up.png"
         elif state == "left":
             state_surf = "jumper-left.png"
@@ -155,33 +210,46 @@ class Player(pygame.sprite.Sprite):
             state_surf = "jumper-right.png"
         else:
             state_surf = "jumper-1.png"
-        self.surf = pygame.image.load(get_image(state_surf))
+        self.surf: surface.Surface = load(get_image(state_surf))
 
     def kill(self):
-        if self.alive == True:
+        """Kill Player
+        
+        If alive, update player state to dead, play 'diskhit.wav' sound effect
+        """
+        if self.state_alive == True:
             play_sound('diskhit.wav')
             self.set_state("dead")
 
     def reset_location(self):
-        self.rect.bottomleft = (SCREEN_WIDTH/2 + 100*(self.id-1), SCREEN_HEIGHT-50)
+        """Reset Location of Player
+        
+        Resets location to default starting location
+        """
+        self.rect.bottomleft = (int(SCREEN_WIDTH/2 + 100*(self.id-1)), int(SCREEN_HEIGHT-50))
 
 
-class Label:
+class Label(GameObject):
+    """Object to print text to display
+    """
     # This instantiates each label, with it's pixel coordinates, it's contents, which is always turned into a string, to make things
     # easier, as well as a colour, which is given a default value of black.
-    def __init__(self, contents:str, location:tuple=None, colour:tuple=None, size=round(SCREEN_WIDTH/31.25), shadow:bool=False, shadow_colour:tuple=None, shadow_offset:tuple=None):
-        if pygame.font.get_init:
-            pygame.font.init()
-        if location is None:
-            location = (0, 0)
-        if colour is None:
-            colour = (255, 255, 255)
-        if shadow_colour is None:
+    def __init__(self, contents:str, location:tuple[int, int] = (0, 0), colour: tuple[int, int, int] = (255, 255, 255), size:int=BODYSIZE, shadow: bool = False, shadow_colour: tuple[int, int, int] = (-1, -1, -1), shadow_offset: tuple[int, int] = (1, 1)):
+        """Initialise new instance of Label
+
+        Args:
+            contents (str): string to print
+            location (tuple, optional): where to display text ondisplay. Defaults to None.
+            colour (tuple, optional): what colour the text should have. Defaults to None.
+            size (int, optional): what size the text should be. Defaults to BODYSIZE constant.
+            shadow (bool, optional): whether a shadow (copy) should be displayed behind the text. Defaults to False.
+            shadow_colour (tuple, optional): what colour the shadow should be. Defaults to None.
+            shadow_offset (tuple, optional): how offset the shadow should be as an (x, y) tuple. Defaults to None.
+        """
+        if shadow_colour == (-1, -1, -1):
             shadow_colour = (255 - colour[0], 255 - colour[1], 255 - colour[2])
-        if shadow_offset is None:
-            shadow_offset = (1, 1)
         # This is one of the built in fonts for pygame. As this does function adequatly I will not be changing it.
-        self.font = pygame.font.Font("freesansbold.ttf", size)
+        self.font = font.Font("freesansbold.ttf", size)
         # This print statement is simply here for debugging, and has been commented out.
         #print("Label Init")
         self.contents = str(contents)
@@ -195,52 +263,71 @@ class Label:
         if self.shadow:
             self.shadow_pre_render = self.font.render(self.contents, True, self.shadow_colour)
 
-    # This is the simple one time show. If the label will never need to change, this puts it on the screen.
-    def show(self, screen):
+    # This is the simple one time draw. If the label will never need to change, this puts it on the display.
+    def draw(self, surf: surface.Surface) -> None:
+        """Displays text once ondisplay, used when string displayed remains constant
+
+        Args:
+            display (pygame.surface.Surface): the display object to draw the text onto
+        """
         # print("Rendered")
-        self.screen = screen
+        self.surf = surf
         if self.shadow:
-            self.screen.blit(self.shadow_pre_render, self.shadow_location)
-        self.screen.blit(self.pre_render, self.location)
+            self.surf.blit(self.shadow_pre_render, self.shadow_location)
+        self.surf.blit(self.pre_render, self.location)
 
     # This is the quick way of changing the contents
-    def change_contents(self, new_contents):
+    def change_contents(self, new_contents: str):
+        """Change Contents
+
+        Args:
+            new_contents (str): new contents of the label (updated on next draw() call)
+        """
         self.contents = str(new_contents)
 
     # This is the quick way of changing the location
-    def change_location(self, new_location):
+    def change_location(self, new_location: tuple[int, int]):
+        """Change Label Location
+        
+        Move label to provided locaiton
+
+        Args:
+            new_location (tuple): new location for label to move to
+        """
         self.location = new_location
 
-    # This is the alternative to show. It re-renders every time, meaning that if the contents has changed, it will
+    # This is the alternative to draw. It re-renders every time, meaning that if the contents has changed, it will
     # change the label.
     def update(self):
+        """Update Prerendered Details
+        """
         if self.shadow:
             self.shadow_pre_render = self.shadow_pre_render = self.font.render(self.contents, True, self.shadow_colour)
-            self.screen.blit(self.shadow_pre_render, self.shadow_location)
+            self.surf.blit(self.shadow_pre_render, self.shadow_location)
         self.pre_render = self.font.render(self.contents, True, self.colour)
-        self.screen.blit(self.pre_render, self.location)
+        self.surf.blit(self.pre_render, self.location)
 
-class Image:
-    def __init__(self, image: str, location: tuple = None):
-        self.image = pygame.image.load(get_image(image))
-        self.location = (0, 0) if location is None else location
+class Image(GameObject):
+    def __init__(self, image: str, location: tuple[int, int] = (-1, -1)):
+        self.image: surface.Surface = load(get_image(image))
+        self.location: tuple[int, int] = (0, 0) if location == (-1, -1) else location
 
-    def show(self, screen):
-        self.screen = screen
-        self.screen.blit(self.image, self.location)
+    def draw(self, surf: surface.Surface):
+        self.surf = surf
+        self.surf.blit(self.image, self.location)
 
 
 ''' Objects '''
-class Object(pygame.sprite.Sprite):
-    def __init__(self, image, pos: tuple):
+class Sprite(sprite.Sprite):
+    def __init__(self, image: str, pos: tuple[int, int]):
         super().__init__()
-        self.image = pygame.image.load(get_image(image)) # MARK: Image must have file extnesion
-        self.rect = self.image.get_rect()
+        self.image: surface.Surface = load(get_image(image)) # MARK: Image must have file extnesion
+        self.rect: rect.Rect = self.image.get_rect()
         self.rect.bottomleft = pos
 
-    # displaying the object on the screen 
-    def draw(self, surface):
-        surface.blit(self.image, self.rect)
+    # displaying the object on the display 
+    def draw(self, surf: surface.Surface):
+        surf.blit(self.image, self.rect)
 
     def get_position(self):
         return self.rect.bottomleft
@@ -250,51 +337,51 @@ class Object(pygame.sprite.Sprite):
 
 
 ''' Enemy Objects '''
-class Disk(Object):
-    def __init__(self, pos: tuple):
+class Disk(Sprite):
+    def __init__(self, pos: tuple[int, int]):
             super().__init__('ninja_star.png', pos)
             self.i = ENEMY_SPEED  # speed of stars
 
-    # Moves the object horizontally accross the screen
+    # Moves the object horizontally accross the display
     def move(self):
         self.rect.move_ip(self.i, 0)
         if self.rect.left < 0 or self.rect.right > SCREEN_WIDTH:
             self.i *= -1
 
 
-class Spike(Object):
-    def __init__(self, pos: tuple):
+class Spike(Sprite):
+    def __init__(self, pos: tuple[int, int]):
         super().__init__('spikes.png', pos)
 
 
-class Spear(Object):
-    def __init__(self, pos: tuple):
+class Spear(Sprite):
+    def __init__(self, pos: tuple[int, int]):
         super().__init__('spear.png', pos)
         self.j = ENEMY_SPEED
 
-    # Moves the object vertically down the screen
+    # Moves the object vertically down the display
     def move(self):
         self.rect.move_ip(0, self.j)
         if self.rect.top > SCREEN_HEIGHT:
             self.rect.bottomleft = (randint(0, SCREEN_WIDTH),0)
 
 ''' Collectables '''
-class Diamond(Object):
-    def __init__(self, pos: tuple):
+class Diamond(Sprite):
+    def __init__(self, pos: tuple[int, int]):
         super().__init__('diamond.png', pos)
 
 
-class Platform:
-    def __init__(self, pos: tuple, length, width):
-        self.surf = pygame.Surface((length, width))
-        self.rect = self.surf.get_rect()
+class Platform(Sprite):
+    def __init__(self, pos: tuple[int, int], length: int, width: int):
+        self.surf = surface.Surface((length, width))
+        self.rect: rect.Rect = self.surf.get_rect()
         self.rect.bottomleft = pos
 
-    # displays the playforms on the screen 
-    def draw(self, surface):
+    # displays the playforms on the surf 
+    def draw(self, surf: surface.Surface):
         # change colour to write
         self.surf.fill((125, 249, 255))
-        surface.blit(self.surf, self.rect)
+        surf.blit(self.surf, self.rect)
 
-    def get_rect(self):
+    def get_rect(self) -> rect.Rect:
         return self.rect

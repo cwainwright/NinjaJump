@@ -1,22 +1,21 @@
-from os import listdir
+from os import listdir, path
 
 import pygame
 
-from assets_fetch import get_asset, get_sound
+from assets_fetch import get_sound
 
-def play_music(filename):
-    if pygame.mixer.get_init() is None:
-        pygame.mixer.init()
+pygame.mixer.init()
+
+def play_music(filename: str):
     pygame.mixer.music.load(get_sound(filename))
     pygame.mixer.music.play(-1)
 
-def play_sound(filename):
-    if pygame.mixer.get_init() is None:
-        pygame.mixer.init()
+def play_sound(filename: str):
+    id: int
     try:
-        id=listdir(get_sound()).index(filename)
+        soundFiles: list[str] = listdir(path.join("assets", "sounds"))
+        id = soundFiles.index(filename)
     except IndexError:
-        id=1
+        return
     sound = pygame.mixer.Sound(get_sound(filename))
     pygame.mixer.Channel(id).play(sound)
-
